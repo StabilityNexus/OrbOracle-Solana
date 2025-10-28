@@ -37,4 +37,4 @@ export const WS_ENDPOINT =
     ? 'ws://127.0.0.1:8900'
     : deriveWsEndpoint(RPC_ENDPOINT))
 
-export const DEFAULT_COMMITMENT: 'confirmed' = 'confirmed'
+export const DEFAULT_COMMITMENT = 'confirmed' as const

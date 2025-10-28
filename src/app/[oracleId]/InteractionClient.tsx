@@ -111,10 +111,20 @@ const parsePriceInput = (raw: string, decimals: number): BN => {
     throw new Error(`Use at most ${decimals} decimal places.`)
   }
 
-  const fractionalPadded = (fractionalRaw + "0".repeat(decimals)).slice(0, decimals)
-  const combined = (wholePart + fractionalPadded).replace(/^0+(?=\d)/, "")
-  const bn = new BN(combined || "0")
-  return negative && !bn.isZero() ? bn.neg() : bn
+const fractionalPadded = (fractionalRaw + "0".repeat(decimals)).slice(0, decimals)
+const combined = (wholePart + fractionalPadded).replace(/^0+(?=\d)/, "")
+const bn = new BN(combined || "0")
+return negative && !bn.isZero() ? bn.neg() : bn
+}
+
+const extractErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+  if (typeof error === "string" && error.length > 0) {
+    return error
+  }
+  return fallback
 }
 
 type UserStateSnapshot = {
@@ -137,7 +147,7 @@ export default function InteractionClient() {
 
   const { connection } = useConnection()
   const wallet = useWallet()
-  const program = useMemo(() => getOracleProgram(connection, wallet.connected ? wallet : null), [connection, wallet.connected, wallet])
+  const program = useMemo(() => getOracleProgram(connection, wallet.connected ? wallet : null), [connection, wallet])
   const { toast } = useToast()
   const { oracle, loading, error, refetch } = useOracle(activeOracleId)
 
@@ -167,7 +177,7 @@ export default function InteractionClient() {
       try {
         await navigator.clipboard.writeText(value)
         toast({ title: "Copied", description: `${label} copied to clipboard.` })
-      } catch (copyError) {
+      } catch (copyError: unknown) {
         console.error("Failed to copy value", copyError)
         toast({ title: "Copy failed", description: "Unable to copy to clipboard.", variant: "destructive" })
       }
@@ -270,7 +280,7 @@ export default function InteractionClient() {
     return () => {
       cancelled = true
     }
-  }, [oracle, wallet.connected, wallet.publicKey, connection, deriveOracleAccounts, program])
+  }, [oracle, wallet, connection, deriveOracleAccounts, program])
 
   const ensureAssociatedTokenAccount = useCallback(
     async (mintPk: PublicKey, ownerPk: PublicKey, ataPk: PublicKey) => {
@@ -319,7 +329,7 @@ export default function InteractionClient() {
 
       throw new Error("Wallet does not support sending transactions")
     },
-    [connection, wallet.connected, wallet.publicKey, wallet.sendTransaction, wallet.signTransaction],
+    [connection, wallet],
   )
 
   const depositTokens = useCallback(async () => {
@@ -365,23 +375,23 @@ export default function InteractionClient() {
           systemProgram: SystemProgram.programId,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           rent: SYSVAR_RENT_PUBKEY,
-        })
+        } as never)
         .rpc()
 
       toast({ title: "Deposit complete", description: "Tokens deposited into the oracle vault." })
       setDepositAmount("")
       void refetch()
-    } catch (depositError: any) {
+    } catch (depositError: unknown) {
       console.error("Failed to deposit tokens", depositError)
       toast({
         title: "Deposit failed",
-        description: depositError?.message ?? "Unable to deposit tokens.",
+        description: extractErrorMessage(depositError, "Unable to deposit tokens."),
         variant: "destructive",
       })
     } finally {
       setIsDepositing(false)
     }
-  }, [oracle, wallet.connected, wallet.publicKey, depositAmount, deriveOracleAccounts, ensureAssociatedTokenAccount, program, toast, refetch])
+  }, [oracle, wallet, depositAmount, deriveOracleAccounts, ensureAssociatedTokenAccount, program, toast, refetch])
 
   const withdrawTokens = useCallback(async () => {
     if (!oracle) {
@@ -422,23 +432,23 @@ export default function InteractionClient() {
           oracleVault: oracleVaultPk,
           userState: userStatePk,
           tokenProgram: TOKEN_PROGRAM_ID,
-        })
+        } as never)
         .rpc()
 
       toast({ title: "Withdrawal complete", description: "Tokens withdrawn from the oracle vault." })
       setWithdrawAmount("")
       void refetch()
-    } catch (withdrawError: any) {
+    } catch (withdrawError: unknown) {
       console.error("Failed to withdraw tokens", withdrawError)
       toast({
         title: "Withdrawal failed",
-        description: withdrawError?.message ?? "Unable to withdraw tokens.",
+        description: extractErrorMessage(withdrawError, "Unable to withdraw tokens."),
         variant: "destructive",
       })
     } finally {
       setIsWithdrawing(false)
     }
-  }, [oracle, wallet.connected, wallet.publicKey, withdrawAmount, deriveOracleAccounts, ensureAssociatedTokenAccount, program, toast, refetch])
+  }, [oracle, wallet, withdrawAmount, deriveOracleAccounts, ensureAssociatedTokenAccount, program, toast, refetch])
 
   const submitPrice = useCallback(async () => {
     if (!oracle) {
@@ -453,10 +463,10 @@ export default function InteractionClient() {
     let priceBn: BN
     try {
       priceBn = parsePriceInput(submitValue, PRICE_DECIMALS)
-    } catch (parseError: any) {
+    } catch (parseError: unknown) {
       toast({
         title: "Invalid value",
-        description: parseError?.message ?? "Enter a numeric value with up to six decimal places.",
+        description: extractErrorMessage(parseError, "Enter a numeric value with up to six decimal places."),
         variant: "destructive",
       })
       return
@@ -473,23 +483,23 @@ export default function InteractionClient() {
           user: wallet.publicKey,
           oracleState: oraclePk,
           userState,
-        })
+        } as never)
         .rpc()
 
       toast({ title: "Value submitted", description: "Oracle value submission succeeded." })
       setSubmitValue("")
       void refetch()
-    } catch (submitError: any) {
+    } catch (submitError: unknown) {
       console.error("Failed to submit value", submitError)
       toast({
         title: "Submission failed",
-        description: submitError?.message ?? "Unable to submit value.",
+        description: extractErrorMessage(submitError, "Unable to submit value."),
         variant: "destructive",
       })
     } finally {
       setIsSubmittingPrice(false)
     }
-  }, [oracle, wallet.connected, wallet.publicKey, submitValue, program, deriveUserStatePda, refetch, toast])
+  }, [oracle, wallet, submitValue, program, deriveUserStatePda, refetch, toast])
 
   const vote = useCallback(
     async (kind: "blacklist" | "whitelist") => {
@@ -524,7 +534,7 @@ export default function InteractionClient() {
             user: wallet.publicKey,
             oracleState: oraclePk,
             userState,
-          })
+          } as never)
           .rpc()
 
         toast({
@@ -533,18 +543,18 @@ export default function InteractionClient() {
         })
         setVoteTarget("")
         void refetch()
-      } catch (voteError: any) {
+      } catch (voteError: unknown) {
         console.error("Failed to vote", voteError)
         toast({
           title: "Voting failed",
-          description: voteError?.message ?? "Unable to submit vote.",
+          description: extractErrorMessage(voteError, "Unable to submit vote."),
           variant: "destructive",
         })
       } finally {
         setIsVoting(false)
       }
     },
-    [oracle, wallet.connected, wallet.publicKey, voteTarget, program, deriveUserStatePda, refetch, toast],
+    [oracle, wallet, voteTarget, program, deriveUserStatePda, refetch, toast],
   )
 
   const totalLockedTokens = userStateInfo?.locked ?? 0
@@ -558,7 +568,6 @@ export default function InteractionClient() {
   const hasOracle = Boolean(oracle)
   const initialLoading = loading && !hasOracle && !error
   const isRefreshing = loading && hasOracle
-  const isConnected = wallet.connected && !!wallet.publicKey
   const derivedAccounts = useMemo(() => {
     if (!oracle || !wallet.publicKey) {
       return null
@@ -572,11 +581,11 @@ export default function InteractionClient() {
         userTokenAccount: userTokenAccount.toBase58(),
         userState: userStatePk.toBase58(),
       }
-    } catch (deriveError) {
+    } catch (deriveError: unknown) {
       console.error("Failed to derive user accounts", deriveError)
       return null
     }
-  }, [oracle, wallet.publicKey, deriveOracleAccounts])
+  }, [oracle, wallet, deriveOracleAccounts])
 
   const recentHistory = useMemo(() => priceHistory.slice(-5).reverse(), [priceHistory])
   const voteTargets = useMemo(() => {
@@ -593,11 +602,11 @@ export default function InteractionClient() {
   const handleRefresh = useCallback(async () => {
     try {
       await refetch()
-    } catch (refreshError: any) {
+    } catch (refreshError: unknown) {
       console.error("Failed to refresh oracle", refreshError)
       toast({
         title: "Refresh failed",
-        description: refreshError?.message ?? "Unable to refresh oracle data.",
+        description: extractErrorMessage(refreshError, "Unable to refresh oracle data."),
         variant: "destructive",
       })
     }
@@ -1167,7 +1176,7 @@ export default function InteractionClient() {
             </table>
           </div>
         ) : (
-          <p className="py-6 text-sm text-muted-foreground">Click "View Addresses" to inspect vote distribution across targets.</p>
+          <p className="py-6 text-sm text-muted-foreground">Click &quot;View Addresses&quot; to inspect vote distribution across targets.</p>
         )}
       </CardContent>
     </Card>

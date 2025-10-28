@@ -12,22 +12,37 @@ const ACCOUNT_SIZES: Record<string, number> = {
   UserState: 5290,
 }
 
+type IdlTypeEntry = {
+  name: string
+  type: unknown
+}
+
+type IdlAccountEntry = {
+  name: string
+  type?: unknown
+  size?: number
+} & Record<string, unknown>
+
 const enrichOracleIdl = (idl: Idl) => {
-  const typeByName = new Map<string, any>()
-  ;(idl.types ?? []).forEach((entry: any) => {
-    typeByName.set(entry.name, entry.type)
+  const typeByName = new Map<string, unknown>()
+  ;(idl.types ?? []).forEach((entry) => {
+    const typedEntry = entry as Partial<IdlTypeEntry>
+    if (typedEntry?.name && typedEntry.type) {
+      typeByName.set(typedEntry.name, typedEntry.type)
+    }
   })
 
-  const patchedAccounts = (idl.accounts ?? []).map((account: any) => {
-    if (!account.type) {
-      const typeDef = typeByName.get(account.name)
+  const patchedAccounts = (idl.accounts ?? []).map((account) => {
+    const typedAccount = account as IdlAccountEntry
+    if (!typedAccount.type && typedAccount.name) {
+      const typeDef = typeByName.get(typedAccount.name)
       if (typeDef) {
-        const size = ACCOUNT_SIZES[account.name]
-        const typeWithSize = size ? { ...typeDef, size } : typeDef
-        return { ...account, type: typeWithSize, size: size ?? account.size }
+        const size = ACCOUNT_SIZES[typedAccount.name]
+        const typeWithSize = size ? { ...(typeDef as Record<string, unknown>), size } : typeDef
+        return { ...typedAccount, type: typeWithSize, size: size ?? typedAccount.size }
       }
     }
-    return account
+    return typedAccount
   })
 
   return { ...idl, accounts: patchedAccounts }
