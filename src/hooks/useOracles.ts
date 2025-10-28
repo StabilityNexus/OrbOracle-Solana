@@ -3,17 +3,72 @@
 import { BN } from '@coral-xyz/anchor'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
+import type { PublicKeyInitData } from '@solana/web3.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getOracleProgram } from '@/lib/oracleProgram'
 
 const PRICE_DECIMALS = 6
 
-const bnToDecimalString = (value?: BN | null, decimals = PRICE_DECIMALS) => {
-  if (!value) {
+const toBn = (value?: BN | number | string | { toNumber?: () => number; toString?: () => string } | null): BN | null => {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  if (value instanceof BN) {
+    return value
+  }
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      return null
+    }
+    return new BN(Math.trunc(value))
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return null
+    }
+    try {
+      return new BN(trimmed)
+    } catch {
+      return null
+    }
+  }
+
+  if (typeof value === 'object') {
+    try {
+      if ('toNumber' in value && typeof value.toNumber === 'function') {
+        const numeric = value.toNumber()
+        if (Number.isFinite(numeric)) {
+          return new BN(Math.trunc(numeric))
+        }
+      }
+      if ('toString' in value && typeof value.toString === 'function') {
+        const str = value.toString()
+        if (str) {
+          return new BN(str)
+        }
+      }
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
+const bnToDecimalString = (
+  value?: BN | number | string | { toNumber?: () => number; toString?: () => string } | null,
+  decimals = PRICE_DECIMALS,
+) => {
+  const bnValue = toBn(value)
+  if (!bnValue) {
     return '—'
   }
-  const negative = value.isNeg()
-  const base = negative ? value.neg() : value
+  const negative = bnValue.isNeg()
+  const base = negative ? bnValue.neg() : bnValue
   const scale = new BN(10).pow(new BN(decimals))
   const whole = base.div(scale)
   const fraction = base.mod(scale).toString().padStart(decimals, '0')
@@ -22,7 +77,10 @@ const bnToDecimalString = (value?: BN | null, decimals = PRICE_DECIMALS) => {
   return `${negative ? '-' : ''}${whole.toString()}${fractionPart}`
 }
 
-const bnToFloat = (value?: BN | null, decimals = PRICE_DECIMALS) => {
+const bnToFloat = (
+  value?: BN | number | string | { toNumber?: () => number; toString?: () => string } | null,
+  decimals = PRICE_DECIMALS,
+) => {
   const decimalString = bnToDecimalString(value, decimals)
   if (decimalString === '—') {
     return 0
@@ -31,11 +89,12 @@ const bnToFloat = (value?: BN | null, decimals = PRICE_DECIMALS) => {
   return Number.isFinite(numeric) ? numeric : 0
 }
 
-const formatTimestamp = (value?: BN | null) => {
-  if (!value) {
+const formatTimestamp = (value?: BN | number | string | { toNumber?: () => number; toString?: () => string } | null) => {
+  const bnValue = toBn(value)
+  if (!bnValue) {
     return '—'
   }
-  const timestamp = value.toNumber()
+  const timestamp = bnValue.toNumber()
   if (!Number.isFinite(timestamp) || timestamp <= 0) {
     return '—'
   }
@@ -91,27 +150,75 @@ type AccountWithPublicKey<T> = {
   account: T
 }
 
-const toOracleDetail = (accountWithPk: AccountWithPublicKey<any>): OracleDetail => {
+type PriceHistoryRecord = {
+  timestamp?: BN | number | null
+  aggregatedValue?: BN | number | null
+  latestValue?: BN | number | null
+}
+
+type GovernanceTargetRaw = {
+  target?: PublicKey | string | null
+  blacklistVotes?: BN | number | string | null
+  whitelistVotes?: BN | number | string | null
+  isBlacklisted?: boolean | null
+}
+
+type OracleAccountRaw = {
+  name?: string | null
+  description?: string | null
+  authority?: PublicKey | string | null
+  weightMint?: PublicKey | string | null
+  totalDepositedTokens?: BN | number | string | null
+  aggregatedWeight?: BN | number | string | null
+  rewardBps?: BN | number | null
+  halfLifeSeconds?: BN | number | null
+  quorum?: BN | number | null
+  depositLockingPeriod?: BN | number | null
+  withdrawalLockingPeriod?: BN | number | null
+  alpha?: BN | number | null
+  priceHistory?: PriceHistoryRecord[] | null
+  targets?: GovernanceTargetRaw[] | null
+  lastSubmissionTime?: BN | number | null
+  lastTimestamp?: BN | number | null
+  aggregatedValue?: BN | number | null
+  latestValue?: BN | number | null
+}
+
+const toOracleDetail = (accountWithPk: AccountWithPublicKey<OracleAccountRaw>): OracleDetail => {
   const { publicKey, account } = accountWithPk
 
-  const resolvePubkey = (value: any): string => {
+  const resolvePubkey = (value: unknown): string => {
     if (!value) return 'Unknown'
     if (typeof value === 'string') return value
-    if (value?.toBase58) return value.toBase58()
-    return new PublicKey(value).toBase58()
+    if (value instanceof PublicKey) return value.toBase58()
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      'toBase58' in value &&
+      typeof (value as { toBase58?: () => string }).toBase58 === 'function'
+    ) {
+      return (value as { toBase58: () => string }).toBase58()
+    }
+    try {
+      return new PublicKey(value as PublicKeyInitData).toBase58()
+    } catch {
+      return 'Unknown'
+    }
   }
 
-  const priceHistory: PriceHistoryPoint[] = (account.priceHistory ?? []).map((record: any) => ({
-    timestamp: record.timestamp instanceof BN ? record.timestamp.toNumber() : Number(record.timestamp ?? 0),
-    aggregated: bnToFloat(record.aggregatedValue ?? null),
-    latest: bnToFloat(record.latestValue ?? null),
+  const priceHistoryRecords = Array.isArray(account.priceHistory) ? account.priceHistory : []
+  const priceHistory: PriceHistoryPoint[] = priceHistoryRecords.map((record) => ({
+    timestamp: record?.timestamp instanceof BN ? record.timestamp.toNumber() : Number(record?.timestamp ?? 0),
+    aggregated: bnToFloat(record?.aggregatedValue ?? null),
+    latest: bnToFloat(record?.latestValue ?? null),
   }))
 
-  const targets: GovernanceTarget[] = (account.targets ?? []).map((target: any) => ({
-    target: resolvePubkey(target.target),
-    blacklistVotes: target.blacklistVotes?.toString?.() ?? '0',
-    whitelistVotes: target.whitelistVotes?.toString?.() ?? '0',
-    isBlacklisted: Boolean(target.isBlacklisted),
+  const targetRecords = Array.isArray(account.targets) ? account.targets : []
+  const targets: GovernanceTarget[] = targetRecords.map((target) => ({
+    target: resolvePubkey(target?.target ?? null),
+    blacklistVotes: target?.blacklistVotes?.toString?.() ?? '0',
+    whitelistVotes: target?.whitelistVotes?.toString?.() ?? '0',
+    isBlacklisted: Boolean(target?.isBlacklisted),
   }))
 
   const halfLifeSeconds = account.halfLifeSeconds instanceof BN ? account.halfLifeSeconds.toNumber() : Number(account.halfLifeSeconds ?? 0)
@@ -166,7 +273,7 @@ const toOracleSummary = (detail: OracleDetail): OracleSummary => ({
 export function useOracles() {
   const { connection } = useConnection()
   const wallet = useWallet()
-  const program = useMemo(() => getOracleProgram(connection, wallet.connected ? wallet : null), [connection, wallet.connected, wallet.publicKey])
+  const program = useMemo(() => getOracleProgram(connection, wallet.connected ? wallet : null), [connection, wallet])
 
   const [oracles, setOracles] = useState<OracleSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -203,7 +310,7 @@ export function useOracles() {
 export function useOracle(address?: string) {
   const { connection } = useConnection()
   const wallet = useWallet()
-  const program = useMemo(() => getOracleProgram(connection, wallet.connected ? wallet : null), [connection, wallet.connected, wallet.publicKey])
+  const program = useMemo(() => getOracleProgram(connection, wallet.connected ? wallet : null), [connection, wallet])
 
   const [oracle, setOracle] = useState<OracleDetail | null>(null)
   const [loading, setLoading] = useState(Boolean(address))
