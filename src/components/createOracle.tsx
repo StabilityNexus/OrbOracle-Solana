@@ -29,6 +29,16 @@ const formatAddress = (value: string) => {
   return `${value.slice(0, 4)}…${value.slice(-4)}`
 }
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+  if (typeof error === 'string' && error.length > 0) {
+    return error
+  }
+  return fallback
+}
+
 interface DerivedAddresses {
   oracleState: string
   oracleVault: string
@@ -70,7 +80,7 @@ export default function CreateOracleIntegrated() {
 
   const program = useMemo(
     () => getOracleProgram(connection, wallet.connected ? wallet : null),
-    [connection, wallet.connected, wallet.publicKey]
+    [connection, wallet]
   )
 
   useEffect(() => {
@@ -294,11 +304,11 @@ export default function CreateOracleIntegrated() {
         title: 'Oracle deployed',
         description: 'The oracle account has been initialized on-chain.',
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Oracle creation failed', error)
       toast({
         title: 'Failed to create oracle',
-        description: error?.message ?? 'Check your inputs and validator status.',
+        description: getErrorMessage(error, 'Check your inputs and validator status.'),
         variant: 'destructive',
       })
     } finally {
