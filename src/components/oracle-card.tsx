@@ -10,7 +10,7 @@ interface OracleCardProps {
 }
 
 export function OracleCard({ oracle }: OracleCardProps) {
-  const oracleUrl = `/oracle/${oracle.address}`
+  const oracleUrl = `/o?oracleId=${encodeURIComponent(oracle.address)}` as const
 
   return (
     <Link href={oracleUrl} className="group block">
