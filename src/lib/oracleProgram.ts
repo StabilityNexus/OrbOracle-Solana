@@ -3,8 +3,8 @@ import type { Idl } from '@coral-xyz/anchor'
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base'
 import type { WalletContextState } from '@solana/wallet-adapter-react'
 import { PublicKey, Connection } from '@solana/web3.js'
-import rawOracleIdl from '../../anchor/target/idl/oracle.json'
-import type { Oracle } from '../../anchor/target/types/oracle'
+import rawOracleIdl from '@project/anchor/idl/oracle.json'
+import type { Oracle } from '@project/anchor/types/oracle'
 import { DEFAULT_COMMITMENT } from '@/utils/cluster'
 
 const ACCOUNT_SIZES: Record<string, number> = {

@@ -1,8 +1,8 @@
 // Here we export some useful types and functions for interacting with the Oracle Anchor program.
 import { AnchorProvider, Program } from '@coral-xyz/anchor'
 import { Cluster, PublicKey } from '@solana/web3.js'
-import OracleIDL from '../target/idl/oracle.json'
-import type { Oracle } from '../target/types/oracle'
+import OracleIDL from './idl/oracle.json'
+import type { Oracle } from './types/oracle'
 
 // Re-export the generated IDL and type
 export { Oracle, OracleIDL }
@@ -19,9 +19,8 @@ export function getOracleProgram(provider: AnchorProvider, address?: PublicKey):
 export function getOracleProgramId(cluster: Cluster) {
   switch (cluster) {
     case 'devnet':
+      return new PublicKey('9oPLPE3PC9ok7T8UL9ZMfrNyPkhtaHh1mM9wFk2fWEVJ')
     case 'testnet':
-      // This is the program ID for the Oracle program on devnet and testnet.
-      return new PublicKey('Count3AcZucFDPSFBAeHkQ6AvttieKUkyJ8HiQGhQwe')
     case 'mainnet-beta':
     default:
       return ORACLE_PROGRAM_ID

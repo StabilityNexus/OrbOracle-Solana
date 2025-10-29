@@ -1,3 +1,4 @@
+import path from 'path'
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
@@ -12,6 +13,13 @@ const nextConfig: NextConfig = {
   // Prevent build hanging issues
   experimental: {
     esmExternals: false,
+  },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@project/anchor': path.resolve(__dirname, 'anchor/src'),
+    }
+    return config
   },
 }
 
