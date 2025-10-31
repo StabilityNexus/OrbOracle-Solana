@@ -834,19 +834,11 @@ export default function InteractionClient() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-3 text-xs text-muted-foreground">
-          <div className="rounded-xl border border-primary/20 bg-card/40 px-3 py-2">
-            <div className="text-muted-foreground/80">Wallet Balance</div>
-            <div className="text-foreground font-medium">{formatTokenAmount(userWalletTokenBalance)} tokens</div>
-          </div>
-          <div className="rounded-xl border border-primary/20 bg-card/40 px-3 py-2">
-            <div className="text-muted-foreground/80">Locked</div>
-            <div className="text-foreground font-medium">{formatTokenAmount(totalLockedTokens)} tokens</div>
-          </div>
-          <div className="rounded-xl border border-primary/20 bg-card/40 px-3 py-2">
-            <div className="text-muted-foreground/80">Unlocked</div>
-            <div className="text-foreground font-medium">{formatTokenAmount(totalUnlockedTokens)} tokens</div>
-          </div>
+        <div className="rounded-xl border border-primary/20 bg-card/40 px-4 py-4 text-sm text-muted-foreground">
+          Deposit lock period:{" "}
+          <span className="font-semibold text-foreground">
+            {formatDuration(oracle.depositLockingPeriod)}
+          </span>
         </div>
         <div className="space-y-2">
           <Label htmlFor="deposit-amount" className="text-foreground font-medium">Amount</Label>

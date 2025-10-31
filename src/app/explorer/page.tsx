@@ -93,7 +93,6 @@ export default function ExplorerPage() {
 
       <main className="container mx-auto px-6 pt-24 pb-16 space-y-12">
         <header className="flex flex-col gap-4 text-left max-w-3xl">
-          <span className="text-xs uppercase tracking-[0.4em] text-muted-foreground">Explorer</span>
           <h1
             className="text-4xl sm:text-5xl font-medium bg-gradient-to-r from-foreground via-primary to-primary/70 bg-clip-text text-transparent"
             style={{ fontStyle: "oblique 15deg" }}
@@ -103,10 +102,6 @@ export default function ExplorerPage() {
           <p className="text-sm sm:text-base text-muted-foreground">
             Browse active oracle instances and drill into their configuration, governance, and recent submissions.
           </p>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <Chip label="Total" value={oracles.length} />
-            <Chip label="Active" value={activeOracles.length} highlight />
-          </div>
         </header>
 
         <section className="max-w-md">

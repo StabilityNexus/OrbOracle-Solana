@@ -1,11 +1,44 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Navigation } from "@/components/navigation"
-import { ArrowRight, Database, Shield, Zap } from "lucide-react"
+import { ArrowRight, CheckCircle2, Database, Shield, Sparkles, Zap } from "lucide-react"
 import Orb from "@/components/Orb"
 
 export default function HomePage() {
+  const differentiators = [
+    {
+      title: "Deterministic Latency",
+      description:
+        "Sub-second finality across Solana, Ethereum, and cross-chain relays keeps on-chain logic perfectly in sync.",
+      icon: Zap,
+    },
+    {
+      title: "Cryptographic Trust",
+      description:
+        "Multi-signature attestation pipelines, signed payloads, and slashable operators guarantee tamper-proof delivery.",
+      icon: Shield,
+    },
+    {
+      title: "Universal Data Fabric",
+      description:
+        "Ingest price feeds, rates, weather, IoT, and enterprise systems through a single GraphQL and gRPC interface.",
+      icon: Database,
+    },
+    {
+      title: "Programmable Automation",
+      description:
+        "Compose fallbacks, thresholds, and circuit breakers with OrbOracle scripting primitives to harden critical flows.",
+      icon: Sparkles,
+    },
+  ]
+
+  const deliveryHighlights = [
+    "Rust and TypeScript SDKs with generated account types and schema validation.",
+    "Deterministic failover routes with notarized audit trails for every data hop.",
+    "Real-time observability, incident webhooks, and configurable alert channels.",
+  ]
+
   return (
     <div className="min-h-screen bg-background font-[oblique] tracking-wide" style={{ fontStyle: 'oblique 12deg' }}>
       {/* <SplashCursor /> */}
@@ -52,100 +85,74 @@ export default function HomePage() {
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="text-lg px-8 bg-transparent border-gray-600 text-gray-400 hover:bg-gray-800">
-                <Link href="/explorer">Learn More</Link>
+                <Link href="/explorer">Explore Oracles</Link>
               </Button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="h-screen flex items-center justify-center">
+      {/* Why Choose Section */}
+      <section className="relative border-t border-border/40 bg-gradient-to-b from-background via-background/80 to-background/40 py-24">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-medium mb-4 tracking-wide" style={{ fontStyle: 'oblique 15deg' }}>Why choose OracleNet?</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Enterprise-grade infrastructure for the next generation of decentralized applications
-            </p>
-          </div>
+          <div className="grid gap-16 lg:grid-cols-[1.15fr_0.85fr]">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-medium tracking-wide" style={{ fontStyle: 'oblique 15deg' }}>
+                Why choose OrbOracle?
+              </h2>
+              <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
+                OrbOracle is a battle-tested data plane engineered for teams that cannot afford downtime.
+                Every packet is notarized, every validator is observable, and every update arrives on time.
+              </p>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <Zap className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Lightning Fast</CardTitle>
-                <CardDescription>
-                  Sub-second data feeds with 99.9% uptime guarantee for mission-critical applications
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <Shield className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Secure & Reliable</CardTitle>
-                <CardDescription>
-                  Multi-signature validation and cryptographic proofs ensure data integrity
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <Database className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Rich Data Sources</CardTitle>
-                <CardDescription>
-                  Connect to thousands of APIs, IoT devices, and real-world data providers
-                </CardDescription>
-              </CardHeader>
-            </Card>
+              <div className="mt-10 grid gap-6 sm:grid-cols-2">
+                {differentiators.map(({ title, description, icon: Icon }) => (
+                  <div
+                    key={title}
+                    className="rounded-3xl border border-border/60 bg-card/60 p-6 shadow-[0_18px_42px_-28px_rgba(135,96,255,0.4)] backdrop-blur"
+                  >
+                    <Icon className="mb-4 h-7 w-7 text-primary" />
+                    <h3 className="text-xl font-semibold tracking-wide">{title}</h3>
+                    <p className="mt-3 text-sm text-muted-foreground">{description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="h-screen flex items-center justify-center">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-medium text-primary mb-2">1,247</div>
-              <div className="text-muted-foreground">Active Oracles</div>
-            </div>
-            <div>
-              <div className="text-4xl font-medium text-primary mb-2">$2.4B</div>
-              <div className="text-muted-foreground">Total Value Secured</div>
-            </div>
-            <div>
-              <div className="text-4xl font-medium text-primary mb-2">99.9%</div>
-              <div className="text-muted-foreground">Uptime</div>
-            </div>
-            <div>
-              <div className="text-4xl font-medium text-primary mb-2">50+</div>
-              <div className="text-muted-foreground">Supported Chains</div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* CTA Section */}
-      <section className="h-screen flex items-center justify-center">
-        <div className="container mx-auto px-4 text-center">
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-medium mb-6 tracking-wide" style={{ fontStyle: 'oblique 15deg' }}>Ready to build the future?</h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              Join thousands of developers building the next generation of decentralized applications
+      <section className="border-t border-border/40 bg-primary/5 py-24">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-3xl md:text-4xl font-medium tracking-wide" style={{ fontStyle: 'oblique 15deg' }}>
+              Ready to build the future?
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Spin up your first OrbOracle feed, stream it into Solana programs, automate failovers, and monitor everything from a single dashboard.
             </p>
-            <Button asChild size="lg" className="text-lg px-8">
-              <Link href="/create">
-                Get Started <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
+
+            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <Button asChild size="lg" className="text-lg px-8">
+                <Link href="/create">
+                  Get Started <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="text-lg px-8 bg-transparent border-border text-foreground hover:bg-card/60"
+              >
+                <Link href="/explorer">Browse live feeds</Link>
+              </Button>
+            </div>
+
+            <p className="mt-10 text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+              Join engineers shipping on Solana, Ethereum, Sui, Base &amp; more
+            </p>
           </div>
         </div>
       </section>
