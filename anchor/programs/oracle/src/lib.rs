@@ -172,6 +172,7 @@ pub mod oracle {
             .checked_sub(amount)
             .ok_or(OracleError::MathUnderflow)?;
 
+        remove_price_weight_on_withdraw(state, user_state, now)?;
         apply_new_weight_to_votes(state, user_state, user_state.unlocked_tokens)?;
 
         let bump_seed = &[state.bump];
@@ -450,6 +451,61 @@ fn unlock_tokens_if_possible(state: &Account<OracleState>, user_state: &mut Acco
             .saturating_add(user_state.locked_tokens);
         user_state.locked_tokens = 0;
     }
+}
+
+fn remove_price_weight_on_withdraw(
+    state: &mut Account<OracleState>,
+    user_state: &mut Account<UserState>,
+    now: i64,
+) -> Result<()> {
+    let old_weight = u128::from(user_state.weight);
+    if old_weight == 0 {
+        user_state.last_submitted_price = 0;
+        user_state.last_submission_time = now;
+        return Ok(());
+    }
+
+    let elapsed_global = time_difference(now, state.last_submission_time);
+    let decayed_q = decay::apply_decay(
+        state.aggregated_weight,
+        elapsed_global,
+        state.half_life_seconds,
+    )?;
+
+    let elapsed_user = time_difference(now, user_state.last_submission_time);
+    let user_weight_decayed =
+        decay::apply_decay(old_weight, elapsed_user, state.half_life_seconds)?;
+
+    let total_value = state
+        .aggregated_value
+        .checked_mul(to_i128(decayed_q)?)
+        .ok_or(OracleError::MathOverflow)?;
+    let user_value = user_state
+        .last_submitted_price
+        .checked_mul(to_i128(user_weight_decayed)?)
+        .ok_or(OracleError::MathOverflow)?;
+    let numerator = total_value.saturating_sub(user_value);
+
+    let new_q = decayed_q
+        .checked_sub(user_weight_decayed)
+        .ok_or(OracleError::MathUnderflow)?;
+    let new_value = if new_q == 0 {
+        0
+    } else {
+        numerator
+            .checked_div(to_i128(new_q)?)
+            .ok_or(OracleError::MathUnderflow)?
+    };
+
+    state.aggregated_value = new_value;
+    state.aggregated_weight = new_q;
+    state.last_submission_time = now;
+
+    user_state.weight = 0;
+    user_state.last_submitted_price = 0;
+    user_state.last_submission_time = now;
+
+    Ok(())
 }
 
 fn apply_new_weight_to_votes(

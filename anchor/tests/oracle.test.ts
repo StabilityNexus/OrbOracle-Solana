@@ -250,4 +250,37 @@ describe('oracle program integration', () => {
     expect(blacklistRecord).toBeDefined()
     expect(blacklistRecord?.blacklistVotes.toNumber()).toBe(depositAmount)
   }, 60000)
+
+  it('removes a fully withdrawn user\'s price weight from the aggregate', async () => {
+    const stateBefore = await program.account.oracleState.fetch(oracleState)
+    expect(stateBefore.aggregatedWeight.gt(new anchor.BN(0))).toBe(true)
+
+    const signature = await program.methods
+      .withdrawTokens(new anchor.BN(depositAmount))
+      .accounts({
+        user: wallet.publicKey,
+        weightMint,
+        oracleState,
+        userTokenAccount,
+        oracleVault,
+        userState,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc()
+
+    expect(typeof signature).toBe('string')
+
+    const stateAfter = await program.account.oracleState.fetch(oracleState)
+    expect(stateAfter.aggregatedWeight.eq(new anchor.BN(0))).toBe(true)
+    expect(stateAfter.aggregatedValue.eq(new anchor.BN(0))).toBe(true)
+    expect(stateAfter.totalDepositedTokens.eq(new anchor.BN(0))).toBe(true)
+
+    const userAfter = await program.account.userState.fetch(userState)
+    expect(userAfter.unlockedTokens.eq(new anchor.BN(0))).toBe(true)
+    expect(userAfter.weight.eq(new anchor.BN(0))).toBe(true)
+    expect(userAfter.lastSubmittedPrice.eq(new anchor.BN(0))).toBe(true)
+
+    const vaultAccount = await getAccount(provider.connection, oracleVault)
+    expect(Number(vaultAccount.amount)).toBe(0)
+  }, 60000)
 })
